@@ -1,17 +1,100 @@
-//
-//  NagRXApp.swift
-//  NagRX
-//
-//  Created by Jiro on 4/20/26.
-//
-
 import SwiftUI
+import SwiftData
+import WatchConnectivity
 
 @main
 struct NagRXApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    var modelContainer: ModelContainer
+
+    init() {
+        do {
+            let schema = Schema([Medication.self])
+            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+            modelContainer = try ModelContainer(for: schema, configurations: [config])
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
+        }
+
+        NagScheduler.shared.configure(modelContainer: modelContainer)
+
+        // Activate WatchConnectivity for syncing medications to Apple Watch
+        if WCSession.isSupported() {
+            WCSession.default.delegate = PhoneSessionDelegate.shared
+            WCSession.default.activate()
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
         }
+        .modelContainer(modelContainer)
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "nagrx", url.host == "takenow" else { return }
+
+        // Dismiss all active alarms: stop audio, haptics, clear notifications
+        AlarmPlayer.shared.stopPlayback()
+        NotificationService.shared.stopHaptics()
+        NotificationService.shared.cancelAll()
+
+        // Clear widget state
+        SharedState.activeMedicationNames = []
+        SharedState.hasActiveAlarm = false
+
+        // Cancel Watch alerts too
+        if WCSession.isSupported(), WCSession.default.activationState == .activated, WCSession.default.isReachable {
+            WCSession.default.sendMessage(["action": "dismiss"], replyHandler: nil, errorHandler: nil)
+        }
+
+        // Re-sync so future alarms are rescheduled (without the now-dismissed ones interfering)
+        Task { @MainActor in
+            await NagScheduler.shared.sync()
+        }
+    }
+}
+
+// MARK: - PhoneSessionDelegate
+
+/// Minimal WCSession delegate for the iOS side. Data flows one-way (iPhone → Watch).
+final class PhoneSessionDelegate: NSObject, WCSessionDelegate {
+    static let shared = PhoneSessionDelegate()
+
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if let error {
+            print("[NagRX] WCSession activation failed: \(error)")
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        if message["request"] as? String == "sync" {
+            print("[NagRX] Watch requested sync")
+            Task { @MainActor in
+                await NagScheduler.shared.sync()
+            }
+        } else if message["action"] as? String == "dismiss" {
+            print("[NagRX] Watch dismissed alarm — cancelling phone alerts")
+            DispatchQueue.main.async {
+                AlarmPlayer.shared.stopPlayback()
+                NotificationService.shared.stopHaptics()
+                NotificationService.shared.cancelAll()
+                SharedState.activeMedicationNames = []
+                SharedState.hasActiveAlarm = false
+                Task { @MainActor in
+                    await NagScheduler.shared.sync()
+                }
+            }
+        }
+    }
+
+    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
     }
 }

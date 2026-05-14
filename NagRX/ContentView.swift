@@ -1,24 +1,31 @@
-//
-//  ContentView.swift
-//  NagRX
-//
-//  Created by Jiro on 4/20/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            MedicationListView()
+                .tabItem {
+                    Label("Medications", systemImage: "pills")
+                }
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
+
+            HelpView()
+                .tabItem {
+                    Label("Help", systemImage: "questionmark.circle")
+                }
         }
-        .padding()
+        .tint(.red)
+        .task {
+            await NagScheduler.shared.sync()
+        }
     }
 }
 
 #Preview {
     ContentView()
 }
+

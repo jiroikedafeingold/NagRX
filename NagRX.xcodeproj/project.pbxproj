@@ -6,14 +6,102 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		132FDDB12F96E5F900D167AB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 132FDDB02F96E5F900D167AB /* WidgetKit.framework */; };
+		132FDDB32F96E5F900D167AB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 132FDDB22F96E5F900D167AB /* SwiftUI.framework */; };
+		132FDDC42F96E5FB00D167AB /* NagRXWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 132FDDAE2F96E5F900D167AB /* NagRXWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		132FDDF02F9AD0D100D167AB /* NagRXWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 132FDDE62F9AD0D000D167AB /* NagRXWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		132FDDC22F96E5FB00D167AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 132FDD312F96DFAB00D167AB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 132FDDAD2F96E5F900D167AB;
+			remoteInfo = NagRXWidgetExtension;
+		};
+		132FDDEE2F9AD0D100D167AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 132FDD312F96DFAB00D167AB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 132FDDE52F9AD0D000D167AB;
+			remoteInfo = "NagRXWatch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		132FDDC92F96E5FB00D167AB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				132FDDC42F96E5FB00D167AB /* NagRXWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		132FDDF42F9AD0D100D167AB /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				132FDDF02F9AD0D100D167AB /* NagRXWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		132FDD392F96DFAB00D167AB /* NagRX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NagRX.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		132FDD7E2F96E3D900D167AB /* NagRXWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NagRXWidget.swift; sourceTree = "<group>"; };
+		132FDDAE2F96E5F900D167AB /* NagRXWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NagRXWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		132FDDB02F96E5F900D167AB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		132FDDB22F96E5F900D167AB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		132FDDCD2F973BF800D167AB /* NagRXWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NagRXWidgetExtension.entitlements; sourceTree = "<group>"; };
+		132FDDE62F9AD0D000D167AB /* NagRXWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "NagRXWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		132FDD802F96E46F00D167AB /* Exceptions for "NagRX" folder in "NagRX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 132FDD382F96DFAB00D167AB /* NagRX */;
+		};
+		132FDDC82F96E5FB00D167AB /* Exceptions for "NagRXWidget" folder in "NagRXWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 132FDDAD2F96E5F900D167AB /* NagRXWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		132FDD3B2F96DFAB00D167AB /* NagRX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				132FDD802F96E46F00D167AB /* Exceptions for "NagRX" folder in "NagRX" target */,
+			);
 			path = NagRX;
+			sourceTree = "<group>";
+		};
+		132FDDB42F96E5F900D167AB /* NagRXWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				132FDDC82F96E5FB00D167AB /* Exceptions for "NagRXWidget" folder in "NagRXWidgetExtension" target */,
+			);
+			path = NagRXWidget;
+			sourceTree = "<group>";
+		};
+		132FDDE72F9AD0D000D167AB /* NagRXWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "NagRXWatch Watch App";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,14 +114,35 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		132FDDAB2F96E5F900D167AB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				132FDDB32F96E5F900D167AB /* SwiftUI.framework in Frameworks */,
+				132FDDB12F96E5F900D167AB /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		132FDDE32F9AD0D000D167AB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		132FDD302F96DFAB00D167AB = {
 			isa = PBXGroup;
 			children = (
+				132FDDCD2F973BF800D167AB /* NagRXWidgetExtension.entitlements */,
 				132FDD3B2F96DFAB00D167AB /* NagRX */,
+				132FDDB42F96E5F900D167AB /* NagRXWidget */,
+				132FDDE72F9AD0D000D167AB /* NagRXWatch Watch App */,
+				132FDDAF2F96E5F900D167AB /* Frameworks */,
 				132FDD3A2F96DFAB00D167AB /* Products */,
+				132FDD7D2F96E3C600D167AB /* NagRXWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -41,8 +150,27 @@
 			isa = PBXGroup;
 			children = (
 				132FDD392F96DFAB00D167AB /* NagRX.app */,
+				132FDDAE2F96E5F900D167AB /* NagRXWidgetExtension.appex */,
+				132FDDE62F9AD0D000D167AB /* NagRXWatch Watch App.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		132FDD7D2F96E3C600D167AB /* NagRXWidget */ = {
+			isa = PBXGroup;
+			children = (
+				132FDD7E2F96E3D900D167AB /* NagRXWidget.swift */,
+			);
+			path = NagRXWidget;
+			sourceTree = "<group>";
+		};
+		132FDDAF2F96E5F900D167AB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				132FDDB02F96E5F900D167AB /* WidgetKit.framework */,
+				132FDDB22F96E5F900D167AB /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -55,10 +183,14 @@
 				132FDD352F96DFAB00D167AB /* Sources */,
 				132FDD362F96DFAB00D167AB /* Frameworks */,
 				132FDD372F96DFAB00D167AB /* Resources */,
+				132FDDC92F96E5FB00D167AB /* Embed Foundation Extensions */,
+				132FDDF42F9AD0D100D167AB /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				132FDDC32F96E5FB00D167AB /* PBXTargetDependency */,
+				132FDDEF2F9AD0D100D167AB /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				132FDD3B2F96DFAB00D167AB /* NagRX */,
@@ -68,6 +200,50 @@
 			);
 			productName = NagRX;
 			productReference = 132FDD392F96DFAB00D167AB /* NagRX.app */;
+			productType = "com.apple.product-type.application";
+		};
+		132FDDAD2F96E5F900D167AB /* NagRXWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 132FDDC52F96E5FB00D167AB /* Build configuration list for PBXNativeTarget "NagRXWidgetExtension" */;
+			buildPhases = (
+				132FDDAA2F96E5F900D167AB /* Sources */,
+				132FDDAB2F96E5F900D167AB /* Frameworks */,
+				132FDDAC2F96E5F900D167AB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				132FDDB42F96E5F900D167AB /* NagRXWidget */,
+			);
+			name = NagRXWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = NagRXWidgetExtension;
+			productReference = 132FDDAE2F96E5F900D167AB /* NagRXWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		132FDDE52F9AD0D000D167AB /* NagRXWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 132FDDF12F9AD0D100D167AB /* Build configuration list for PBXNativeTarget "NagRXWatch Watch App" */;
+			buildPhases = (
+				132FDDE22F9AD0D000D167AB /* Sources */,
+				132FDDE32F9AD0D000D167AB /* Frameworks */,
+				132FDDE42F9AD0D000D167AB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				132FDDE72F9AD0D000D167AB /* NagRXWatch Watch App */,
+			);
+			name = "NagRXWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "NagRXWatch Watch App";
+			productReference = 132FDDE62F9AD0D000D167AB /* NagRXWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -81,6 +257,12 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					132FDD382F96DFAB00D167AB = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					132FDDAD2F96E5F900D167AB = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					132FDDE52F9AD0D000D167AB = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
@@ -100,12 +282,28 @@
 			projectRoot = "";
 			targets = (
 				132FDD382F96DFAB00D167AB /* NagRX */,
+				132FDDAD2F96E5F900D167AB /* NagRXWidgetExtension */,
+				132FDDE52F9AD0D000D167AB /* NagRXWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		132FDD372F96DFAB00D167AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		132FDDAC2F96E5F900D167AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		132FDDE42F9AD0D000D167AB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +320,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		132FDDAA2F96E5F900D167AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		132FDDE22F9AD0D000D167AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		132FDDC32F96E5FB00D167AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 132FDDAD2F96E5F900D167AB /* NagRXWidgetExtension */;
+			targetProxy = 132FDDC22F96E5FB00D167AB /* PBXContainerItemProxy */;
+		};
+		132FDDEF2F9AD0D100D167AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 132FDDE52F9AD0D000D167AB /* NagRXWatch Watch App */;
+			targetProxy = 132FDDEE2F9AD0D100D167AB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		132FDD422F96DFAD00D167AB /* Debug */ = {
@@ -251,11 +476,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NagRX/NagRX.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = TJ8LYQ4D36;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NagRX/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -265,7 +492,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -283,11 +510,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NagRX/NagRX.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = TJ8LYQ4D36;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NagRX/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -297,7 +526,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -307,6 +536,142 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		132FDDC62F96E5FB00D167AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = NagRXWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = TJ8LYQ4D36;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NagRXWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NagRXWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX.NagRXWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,4";
+			};
+			name = Debug;
+		};
+		132FDDC72F96E5FB00D167AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = NagRXWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = TJ8LYQ4D36;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NagRXWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NagRXWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX.NagRXWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,4";
+			};
+			name = Release;
+		};
+		132FDDF22F9AD0D100D167AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = TJ8LYQ4D36;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NagRX;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jirofeingold.NagRX.NagRX;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		132FDDF32F9AD0D100D167AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = TJ8LYQ4D36;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = NagRX;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jirofeingold.NagRX.NagRX;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jirofeingold.NagRX.NagRX.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
 		};
@@ -327,6 +692,24 @@
 			buildConfigurations = (
 				132FDD452F96DFAD00D167AB /* Debug */,
 				132FDD462F96DFAD00D167AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		132FDDC52F96E5FB00D167AB /* Build configuration list for PBXNativeTarget "NagRXWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				132FDDC62F96E5FB00D167AB /* Debug */,
+				132FDDC72F96E5FB00D167AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		132FDDF12F9AD0D100D167AB /* Build configuration list for PBXNativeTarget "NagRXWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				132FDDF22F9AD0D100D167AB /* Debug */,
+				132FDDF32F9AD0D100D167AB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
