@@ -20,5 +20,11 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "defaultSound") }
     }
 
+    /// Show the on-screen celebration animation when a medication is marked taken. Default on.
+    var celebrationEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "celebrationEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "celebrationEnabled") }
+    }
+
     private init() {}
 }

@@ -39,10 +39,19 @@ struct NagRXApp: App {
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "nagrx", url.host == "takenow" else { return }
 
+        // Capture which medication(s) were active before we clear them, so the celebration can name one.
+        let celebratedName = SharedState.activeMedicationNames.first ?? ""
+
         // Dismiss all active alarms: stop audio, haptics, clear notifications
         AlarmPlayer.shared.stopPlayback()
         NotificationService.shared.stopHaptics()
         NotificationService.shared.cancelAll()
+
+        // Celebrate the user — strong haptic + visual confetti overlay.
+        NotificationService.shared.playSuccessHaptic()
+        Task { @MainActor in
+            CelebrationManager.shared.celebrate(medicationName: celebratedName)
+        }
 
         // Clear widget state
         SharedState.activeMedicationNames = []
@@ -81,9 +90,14 @@ final class PhoneSessionDelegate: NSObject, WCSessionDelegate {
         } else if message["action"] as? String == "dismiss" {
             print("[NagRX] Watch dismissed alarm — cancelling phone alerts")
             DispatchQueue.main.async {
+                let celebratedName = SharedState.activeMedicationNames.first ?? ""
                 AlarmPlayer.shared.stopPlayback()
                 NotificationService.shared.stopHaptics()
                 NotificationService.shared.cancelAll()
+                NotificationService.shared.playSuccessHaptic()
+                Task { @MainActor in
+                    CelebrationManager.shared.celebrate(medicationName: celebratedName)
+                }
                 SharedState.activeMedicationNames = []
                 SharedState.hasActiveAlarm = false
                 Task { @MainActor in

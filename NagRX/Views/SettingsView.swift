@@ -4,6 +4,7 @@ struct SettingsView: View {
     @State private var testScheduled = false
     @State private var reNagInterval = AppSettings.shared.reNagIntervalMinutes
     @State private var defaultSound = AppSettings.shared.defaultSound
+    @State private var celebrationEnabled = AppSettings.shared.celebrationEnabled
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,19 @@ struct SettingsView: View {
                             }
                         )
                     }
+                }
+
+                Section("Celebration") {
+                    Toggle("Show celebration animation", isOn: Binding(
+                        get: { celebrationEnabled },
+                        set: {
+                            celebrationEnabled = $0
+                            AppSettings.shared.celebrationEnabled = $0
+                        }
+                    ))
+                    Text("Plays a confetti animation when you mark a medication as taken. Haptics still fire either way.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Test") {

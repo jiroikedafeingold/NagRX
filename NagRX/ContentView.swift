@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var celebration = CelebrationManager.shared
+
     var body: some View {
         TabView {
             MedicationListView()
@@ -21,6 +23,13 @@ struct ContentView: View {
         .tint(.red)
         .task {
             await NagScheduler.shared.sync()
+        }
+        .overlay {
+            if celebration.isCelebrating {
+                CelebrationView(medicationName: celebration.medicationName)
+                    .transition(.opacity)
+                    .zIndex(100)
+            }
         }
     }
 }

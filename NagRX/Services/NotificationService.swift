@@ -294,6 +294,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         cancel(identifiers: [base])
         stopHaptics()
         AlarmPlayer.shared.dismiss(identifier: base)
+        playSuccessHaptic()
 
         var active = SharedState.activeMedicationNames
         if let medName = content.userInfo["medicationName"] as? String {
@@ -513,5 +514,102 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
 
         hapticFallbackItems.forEach { $0.cancel() }
         hapticFallbackItems.removeAll()
+    }
+
+    /// Plays a noticeable celebratory haptic pattern for when the user marks a medication taken.
+    /// Three escalating taps, a rising continuous buzz, then a final exclamation hit — the rhythm
+    /// reads as "ta-da!" rather than the alarm's repeating staccato.
+    func playSuccessHaptic() {
+        // UIKit notification haptic plays alongside CoreHaptics for an extra-strong success "thunk".
+        DispatchQueue.main.async {
+            let gen = UINotificationFeedbackGenerator()
+            gen.prepare()
+            gen.notificationOccurred(.success)
+        }
+
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics,
+              let engine = hapticEngine else {
+            // Fallback: three escalating heavy impacts.
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                let gen = UIImpactFeedbackGenerator(style: .heavy)
+                gen.prepare()
+                let intensities: [(Double, CGFloat)] = [(0.0, 0.6), (0.12, 0.8), (0.28, 1.0), (0.55, 1.0)]
+                for (delay, intensity) in intensities {
+                    let item = DispatchWorkItem { gen.impactOccurred(intensity: intensity) }
+                    self.hapticFallbackItems.append(item)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
+                }
+            }
+            return
+        }
+
+        var events: [CHHapticEvent] = []
+
+        // Three escalating taps — opens with attention-grabbing rhythm.
+        let tapTimes: [(Double, Float)] = [(0.0, 0.7), (0.12, 0.85), (0.26, 1.0)]
+        for (time, intensity) in tapTimes {
+            events.append(CHHapticEvent(
+                eventType: .hapticTransient,
+                parameters: [
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                ],
+                relativeTime: time
+            ))
+        }
+
+        // Rising continuous buzz (0.45s) using intensity curve for a "whoosh up" feel.
+        let buzzStart: TimeInterval = 0.42
+        let buzzDuration: TimeInterval = 0.45
+        events.append(CHHapticEvent(
+            eventType: .hapticContinuous,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+            ],
+            relativeTime: buzzStart,
+            duration: buzzDuration
+        ))
+
+        let intensityCurve = CHHapticParameterCurve(
+            parameterID: .hapticIntensityControl,
+            controlPoints: [
+                .init(relativeTime: 0, value: 0.4),
+                .init(relativeTime: buzzDuration * 0.6, value: 1.0),
+                .init(relativeTime: buzzDuration, value: 1.0)
+            ],
+            relativeTime: buzzStart
+        )
+        let sharpnessCurve = CHHapticParameterCurve(
+            parameterID: .hapticSharpnessControl,
+            controlPoints: [
+                .init(relativeTime: 0, value: 0.3),
+                .init(relativeTime: buzzDuration, value: 1.0)
+            ],
+            relativeTime: buzzStart
+        )
+
+        // Final exclamation hit.
+        events.append(CHHapticEvent(
+            eventType: .hapticTransient,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+            ],
+            relativeTime: buzzStart + buzzDuration + 0.03
+        ))
+
+        do {
+            let pattern = try CHHapticPattern(events: events, parameterCurves: [intensityCurve, sharpnessCurve])
+            try? hapticPlayer?.stop(atTime: CHHapticTimeImmediate)
+            let player = try engine.makeAdvancedPlayer(with: pattern)
+            player.loopEnabled = false
+            try engine.start()
+            try player.start(atTime: CHHapticTimeImmediate)
+            hapticPlayer = player
+        } catch {
+            print("[NagRX] Success haptic error: \(error)")
+        }
     }
 }
