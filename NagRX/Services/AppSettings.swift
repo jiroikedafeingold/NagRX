@@ -20,9 +20,11 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "defaultSound") }
     }
 
-    /// Show the on-screen celebration animation when a medication is marked taken. Default on.
+    /// Show the on-screen celebration animation + success haptics when a medication is marked taken.
+    /// Off by default — when off, the "I Took It" notification action stays in the background and
+    /// doesn't open the app.
     var celebrationEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "celebrationEnabled") as? Bool ?? true }
+        get { UserDefaults.standard.object(forKey: "celebrationEnabled") as? Bool ?? false }
         set { UserDefaults.standard.set(newValue, forKey: "celebrationEnabled") }
     }
 

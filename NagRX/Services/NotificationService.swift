@@ -68,10 +68,17 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
             title: "Snooze 1 day",
             options: []
         )
+        // Only request foreground launch on dismiss when celebrations are on. Foregrounding is
+        // required for CoreHaptics + the on-screen overlay to actually run; if the user has
+        // celebrations off, we want the action to stay in the background instead.
+        var dismissOptions: UNNotificationActionOptions = [.destructive]
+        if AppSettings.shared.celebrationEnabled {
+            dismissOptions.insert(.foreground)
+        }
         let dismissAction = UNNotificationAction(
             identifier: AlarmAction.dismiss,
             title: "I Took It",
-            options: [.destructive]
+            options: dismissOptions
         )
         let alarmCategory = UNNotificationCategory(
             identifier: AlarmAction.category,
@@ -294,10 +301,19 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         cancel(identifiers: [base])
         stopHaptics()
         AlarmPlayer.shared.dismiss(identifier: base)
+
+        let medName = content.userInfo["medicationName"] as? String ?? ""
+
+        // Celebrate the user — strong haptic + visual overlay.
+        // Action button has .foreground option so the app is active when this runs,
+        // letting CoreHaptics actually fire and the overlay become visible.
         playSuccessHaptic()
+        Task { @MainActor in
+            CelebrationManager.shared.celebrate(medicationName: medName)
+        }
 
         var active = SharedState.activeMedicationNames
-        if let medName = content.userInfo["medicationName"] as? String {
+        if !medName.isEmpty {
             active.removeAll { $0 == medName }
         }
         SharedState.activeMedicationNames = active
@@ -519,7 +535,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
     /// Plays a noticeable celebratory haptic pattern for when the user marks a medication taken.
     /// Three escalating taps, a rising continuous buzz, then a final exclamation hit — the rhythm
     /// reads as "ta-da!" rather than the alarm's repeating staccato.
+    /// No-op when the user has disabled celebrations in Settings.
     func playSuccessHaptic() {
+        guard AppSettings.shared.celebrationEnabled else { return }
         // UIKit notification haptic plays alongside CoreHaptics for an extra-strong success "thunk".
         DispatchQueue.main.async {
             let gen = UINotificationFeedbackGenerator()

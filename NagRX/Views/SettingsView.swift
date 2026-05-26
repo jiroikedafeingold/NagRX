@@ -43,14 +43,17 @@ struct SettingsView: View {
                 }
 
                 Section("Celebration") {
-                    Toggle("Show celebration animation", isOn: Binding(
+                    Toggle("Celebrate when taken", isOn: Binding(
                         get: { celebrationEnabled },
                         set: {
                             celebrationEnabled = $0
                             AppSettings.shared.celebrationEnabled = $0
+                            // Re-register so the "I Took It" notification action picks up
+                            // (or drops) its .foreground option immediately.
+                            NotificationService.shared.registerCategories()
                         }
                     ))
-                    Text("Plays a confetti animation when you mark a medication as taken. Haptics still fire either way.")
+                    Text("Plays a confetti animation and success haptics when you mark a medication as taken. When on, tapping \"I Took It\" briefly opens the app so the haptics and animation can fire.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
