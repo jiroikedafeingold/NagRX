@@ -85,6 +85,7 @@ final class PhoneSessionDelegate: NSObject, WCSessionDelegate {
         if message["request"] as? String == "sync" {
             print("[NagRX] Watch requested sync")
             Task { @MainActor in
+                NagScheduler.shared.invalidateWatchPayloadCache()
                 await NagScheduler.shared.sync()
             }
         } else if message["action"] as? String == "dismiss" {

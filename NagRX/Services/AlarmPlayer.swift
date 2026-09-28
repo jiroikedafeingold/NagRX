@@ -52,11 +52,20 @@ final class AlarmPlayer {
     private var stopWork: DispatchWorkItem?
     var isPlaying: Bool { player?.isPlaying == true }
 
+    /// How long after a fire date an alarm is still allowed to sound. Anything
+    /// older is treated as missed rather than played late.
+    private static let tickWindow: TimeInterval = 5
+
+    /// Longest the timer is allowed to sleep between wakeups. The next alarm is
+    /// usually hours away, so re-arming at least this often is a cheap self-heal
+    /// against clock changes — 4 wakeups an hour instead of 3,600.
+    private static let maxSleep: TimeInterval = 15 * 60
+
     private init() {
         entries = Self.loadEntries()
         if !entries.isEmpty {
             print("[NagRX] AlarmPlayer restored \(entries.count) entries from disk")
-            startTimerIfNeeded()
+            armTimer()
         }
     }
 
@@ -67,7 +76,7 @@ final class AlarmPlayer {
         entries = newEntries
         pruneOldTimestamps()
         persistEntries()
-        startTimerIfNeeded()
+        armTimer()
     }
 
     /// Add a snooze entry (called when user snoozes a notification).
@@ -76,7 +85,7 @@ final class AlarmPlayer {
         entries.removeAll { $0.identifier == snoozeID }
         entries.append(Entry(identifier: snoozeID, fireDates: [fireDate], sound: sound, medicationName: medicationName))
         persistEntries()
-        startTimerIfNeeded()
+        armTimer()
     }
 
     /// Stop current playback and remove all entries for this alarm.
@@ -87,6 +96,7 @@ final class AlarmPlayer {
             $0.identifier == identifier || $0.identifier.hasPrefix(identifier)
         }
         persistEntries()
+        armTimer()
     }
 
     /// Stop current playback (the snooze notification will re-fire later).
@@ -99,16 +109,40 @@ final class AlarmPlayer {
             ($0.identifier == identifier || $0.identifier.hasPrefix(identifier + "_r"))
         }
         persistEntries()
+        armTimer()
     }
 
     // MARK: - Timer
 
-    private func startTimerIfNeeded() {
-        guard timer == nil else { return }
-        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+    /// Schedules a single wakeup for the next alarm instead of polling every
+    /// second. A phone with medications queued all day used to wake the CPU
+    /// 86,400 times a day to do nothing; now it wakes once per alarm, plus one
+    /// cheap self-heal every `maxSleep`.
+    private func armTimer() {
+        timer?.invalidate()
+        timer = nil
+
+        let now = Date()
+        // Only dates tick() could still act on: inside its window and unplayed.
+        let horizon = now.addingTimeInterval(-Self.tickWindow)
+        let next = entries
+            .flatMap(\.fireDates)
+            .filter { $0 > horizon && !firedTimestamps.contains(Int($0.timeIntervalSince1970)) }
+            .min()
+        guard let next else { return }
+
+        // Never sleep past maxSleep, so a clock change can't strand the timer.
+        let target = max(next, now)
+        let deadline = min(target, now.addingTimeInterval(Self.maxSleep))
+        let t = Timer(fire: deadline, interval: 0, repeats: false) { [weak self] _ in
             guard let self else { return }
-            Task { @MainActor in self.tick() }
+            Task { @MainActor in
+                self.tick()
+                self.armTimer()
+            }
         }
+        // Wake precisely for a real alarm; let the OS coalesce self-heal wakeups.
+        t.tolerance = deadline < target ? 30 : 0
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
@@ -120,7 +154,7 @@ final class AlarmPlayer {
         for entry in entries {
             for fireDate in entry.fireDates {
                 let age = now.timeIntervalSince(fireDate)
-                guard age >= 0, age < 5 else { continue }
+                guard age >= 0, age < Self.tickWindow else { continue }
 
                 let stamp = Int(fireDate.timeIntervalSince1970)
                 guard !firedTimestamps.contains(stamp) else { continue }
@@ -143,19 +177,6 @@ final class AlarmPlayer {
             }
             SharedState.activeMedicationNames = active
             SharedState.hasActiveAlarm = true
-        }
-
-        stopTimerIfIdle()
-    }
-
-    private func stopTimerIfIdle() {
-        let now = Date()
-        let hasUpcoming = entries.contains { entry in
-            entry.fireDates.contains { $0 > now }
-        }
-        if !hasUpcoming && !isPlaying {
-            timer?.invalidate()
-            timer = nil
         }
     }
 

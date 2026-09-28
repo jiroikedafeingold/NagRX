@@ -49,8 +49,10 @@ struct NagRXWidgetProvider: TimelineProvider {
             hasActiveAlarm: WidgetSharedState.hasActiveAlarm,
             activeMedicationNames: WidgetSharedState.activeMedicationNames
         )
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: .now)!
-        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        // The shared state only changes when the app writes it, and every write
+        // already calls reloadAllTimelines(). Polling every 5 minutes just spawned
+        // this extension ~290 times a day to re-read the same two values.
+        completion(Timeline(entries: [entry], policy: .never))
     }
 }
 

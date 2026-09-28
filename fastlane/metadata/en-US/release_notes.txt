@@ -1,0 +1,9 @@
+This update is all about battery life, without giving up what NagRX promises: the alarm keeps nagging, out loud, until you take your medication, even when the phone is locked and the ringer is off.
+
+- Alarms now wake the phone only at the moment they need to ring, instead of checking the clock every second all day.
+- The silent background stream that keeps alarms reliable now uses the lightest audio settings iOS allows.
+- The haptic engine powers down between alarms.
+- The widget updates only when your medication status actually changes, instead of refreshing every few minutes.
+- The medication list is sent to your Apple Watch only when it has changed.
+
+Questions or feedback? apps@feingold5.com

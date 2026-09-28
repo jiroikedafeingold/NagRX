@@ -414,11 +414,16 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         do {
             hapticEngine = try CHHapticEngine()
+            // The process lives around the clock for the audio keep-alive, so an
+            // engine started here and never stopped would hold the haptic hardware
+            // active all day for alarms that ring a few times. Let Core Haptics
+            // stop it after ~2 minutes idle instead; every player start() below
+            // restarts the engine first, so nothing is lost.
+            hapticEngine?.isAutoShutdownEnabled = true
             hapticEngine?.resetHandler = { [weak self] in
                 try? self?.hapticEngine?.start()
             }
             hapticEngine?.stoppedHandler = { _ in }
-            try hapticEngine?.start()
         } catch {
             print("[NagRX] Haptic engine error: \(error)")
         }

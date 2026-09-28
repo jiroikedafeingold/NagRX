@@ -10,7 +10,18 @@ final class NagScheduler {
     private var modelContainer: ModelContainer?
     private var dailySyncTimer: Timer?
 
+    /// The last payload handed to WatchConnectivity. sync() runs on every
+    /// foreground and transferUserInfo queues a Bluetooth transfer even when the
+    /// Watch is out of range, so unchanged lists used to pile up as radio work.
+    private var lastWatchPayload: Data?
+
     private init() {}
+
+    /// Forget the last payload so the next sync() sends to the Watch regardless.
+    /// Used when the Watch itself asks for data (fresh install, lost state).
+    func invalidateWatchPayloadCache() {
+        lastWatchPayload = nil
+    }
 
     /// Must be called once after the model container is ready.
     func configure(modelContainer: ModelContainer) {
@@ -198,7 +209,17 @@ final class NagScheduler {
             "reNagIntervalMinutes": reNagMinutes
         ]
 
+        let fingerprint = data + Data("|\(reNagMinutes)".utf8)
+        guard fingerprint != lastWatchPayload else {
+            print("[NagRX] Watch sync skipped: medication list unchanged")
+            return
+        }
+        lastWatchPayload = fingerprint
+
         print("[NagRX] Sending \(watchMeds.count) medications to Watch (reNag: \(reNagMinutes)min, reachable: \(session.isReachable))")
+
+        // Anything still queued carries an older list; the new payload supersedes it.
+        session.outstandingUserInfoTransfers.forEach { $0.cancel() }
 
         if session.isReachable {
             session.sendMessage(payload, replyHandler: nil) { error in
