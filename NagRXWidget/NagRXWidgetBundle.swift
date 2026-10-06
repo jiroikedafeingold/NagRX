@@ -5,5 +5,8 @@ import SwiftUI
 struct NagRXWidgetBundle: WidgetBundle {
     var body: some Widget {
         NagRXWidget()
+        #if os(iOS)
+        DoseAlarmLiveActivity()
+        #endif
     }
 }

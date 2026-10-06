@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.jirofeingold.NagRX.refresh</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -13,9 +17,13 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>NagRX rings an alarm when each medication is due so it sounds even when your iPhone is on silent or in a Focus.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>audio</string>
+		<string>fetch</string>
 	</array>
 </dict>
 </plist>

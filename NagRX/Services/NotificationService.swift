@@ -24,7 +24,6 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
     private var hapticPlayer: CHHapticAdvancedPatternPlayer?
     private var hapticStopWork: DispatchWorkItem?
     private var hapticFallbackItems: [DispatchWorkItem] = []
-    private var hapticRepeatTimer: Timer?
 
     private override init() {
         super.init()
@@ -100,8 +99,10 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         fireDate: Date,
         sound: NagRXSound,
         reNagCount: Int = 60,
-        silentReminder: Bool = false
+        silentReminder: Bool = false,
+        medicationID: String? = nil
     ) async -> String {
+        let doseTimestamp = Int(fireDate.timeIntervalSince1970)
         if silentReminder {
             await schedule(
                 id: identifier,
@@ -110,7 +111,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
                 threadID: identifier,
                 date: fireDate,
                 sound: sound,
-                isSilent: true
+                isSilent: true,
+                medicationID: medicationID,
+                doseTimestamp: doseTimestamp
             )
             return identifier
         }
@@ -138,7 +141,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
                 threadID: identifier,
                 date: ring.date,
                 sound: sound,
-                isSilent: false
+                isSilent: false,
+                medicationID: medicationID,
+                doseTimestamp: doseTimestamp
             )
         }
 
@@ -159,6 +164,33 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         center.removeAllDeliveredNotifications()
     }
 
+    /// Clears everything still scheduled but leaves delivered alerts alone; a
+    /// resync rebuilds the pending queue from scratch.
+    func cancelAllPending() {
+        center.removeAllPendingNotificationRequests()
+    }
+
+    /// Delivered notifications older than this are cleared automatically.
+    static let deliveredRetention: TimeInterval = 30 * 60
+
+    /// Keeps Notification Center down to a single NagRX notification: only the
+    /// most recently delivered one is kept, and even that is removed once it's
+    /// more than 30 minutes old. iOS gives no hook when a notification arrives in
+    /// the background, so this runs whenever NagRX does — when an alert shows in
+    /// the foreground, when the app opens, on every sync, and on alarm actions.
+    func tidyDeliveredNotifications() {
+        let center = self.center
+        let cutoff = Date().addingTimeInterval(-Self.deliveredRetention)
+        center.getDeliveredNotifications { delivered in
+            let newest = delivered.max { $0.date < $1.date }
+            let staleIDs = delivered
+                .filter { $0.request.identifier != newest?.request.identifier || $0.date < cutoff }
+                .map(\.request.identifier)
+            guard !staleIDs.isEmpty else { return }
+            center.removeDeliveredNotifications(withIdentifiers: staleIDs)
+        }
+    }
+
     // MARK: UNUserNotificationCenterDelegate
 
     func userNotificationCenter(
@@ -172,28 +204,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         let isSilent = notification.request.content.userInfo["silentReminder"] as? Bool ?? false
 
         if isSilent {
-            startRepeatingHaptics()
             completionHandler([.banner, .sound])
             return
         }
 
-        // Mark this medication as active for the widget
-        if let medName = notification.request.content.userInfo["medicationName"] as? String, !medName.isEmpty {
-            var active = SharedState.activeMedicationNames
-            if !active.contains(medName) {
-                active.append(medName)
-            }
-            SharedState.activeMedicationNames = active
-            SharedState.hasActiveAlarm = true
-        }
-
-        // Start continuous haptics (repeats until dismissed/snoozed)
-        startRepeatingHaptics()
-
-        // Always trigger AlarmPlayer sound for every notification (initial and re-nags).
-        let soundName = notification.request.content.userInfo["soundName"] as? String ?? "pebble"
-        let sound = NagRXSound(rawValue: soundName) ?? .pebble
-        AlarmPlayer.shared.playSoundDirectly(sound)
+        // Notifications are the fallback when alarms aren't allowed; the
+        // notification's own sound plays. The widget works out what's due from
+        // the shared schedule, so nothing to update here.
 
         // Infinite chain: schedule another re-nag notification in the future
         // so alerts never stop until the user dismisses.
@@ -299,10 +316,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
 
     private func dismissAlarm(base: String, content: UNNotificationContent) {
         cancel(identifiers: [base])
-        stopHaptics()
-        AlarmPlayer.shared.dismiss(identifier: base)
 
         let medName = content.userInfo["medicationName"] as? String ?? ""
+        if let medicationID = content.userInfo["medicationID"] as? String,
+           let doseTimestamp = content.userInfo["doseTimestamp"] as? Int {
+            DoseLedger.markTaken(medicationID: medicationID,
+                                 doseDate: Date(timeIntervalSince1970: TimeInterval(doseTimestamp)))
+        }
 
         // Celebrate the user — strong haptic + visual overlay.
         // Action button has .foreground option so the app is active when this runs,
@@ -312,16 +332,10 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
             CelebrationManager.shared.celebrate(medicationName: medName)
         }
 
-        var active = SharedState.activeMedicationNames
-        if !medName.isEmpty {
-            active.removeAll { $0 == medName }
-        }
-        SharedState.activeMedicationNames = active
-        SharedState.hasActiveAlarm = !active.isEmpty
-
         center.removeAllDeliveredNotifications()
 
         sendDismissToWatch()
+        Task { @MainActor in await NagScheduler.shared.sync() }
     }
 
     private func snoozeAlarm(base: String, content: UNNotificationContent, minutes: Int) {
@@ -343,19 +357,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
             if let error { print("[NagRX] Snooze schedule failed: \(error)") }
         }
 
-        stopHaptics()
-        AlarmPlayer.shared.stopForSnooze(identifier: base)
-        let snoozeDate = Date().addingTimeInterval(snoozeSeconds)
-        let soundName = content.userInfo["soundName"] as? String ?? "pebble"
-        let sound = NagRXSound(rawValue: soundName) ?? .pebble
-        let medName = content.userInfo["medicationName"] as? String ?? ""
-        AlarmPlayer.shared.addSnooze(identifier: base, at: snoozeDate, sound: sound, medicationName: medName)
-
         sendDismissToWatch()
     }
 
     /// Tell the Watch to cancel its alerts when user acts on the phone.
-    private func sendDismissToWatch() {
+    func sendDismissToWatch() {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         let msg: [String: Any] = ["action": "dismiss"]
         if WCSession.default.isReachable {
@@ -374,7 +380,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         threadID: String,
         date: Date,
         sound: NagRXSound,
-        isSilent: Bool = false
+        isSilent: Bool = false,
+        medicationID: String? = nil,
+        doseTimestamp: Int? = nil
     ) async {
         let content = UNMutableNotificationContent()
         content.title             = title
@@ -384,6 +392,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         let medName = title.replacingOccurrences(of: "Take ", with: "")
         content.userInfo["medicationName"] = medName
         content.userInfo["silentReminder"] = isSilent
+        if let medicationID { content.userInfo["medicationID"] = medicationID }
+        if let doseTimestamp { content.userInfo["doseTimestamp"] = doseTimestamp }
 
         if isSilent {
             content.body = ""
@@ -429,107 +439,9 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate, @un
         }
     }
 
-    /// Starts repeating haptic bursts that continue until stopHaptics() is called.
-    /// Each burst is a 5-second aggressive staccato pattern, followed by a brief pause,
-    /// then it repeats. This continues for up to 5 minutes total.
-    func startRepeatingHaptics() {
-        stopHaptics()
-
-        // Fire the first burst immediately
-        playOneHapticBurst()
-
-        // Repeat every 5.5 seconds (5s burst + 0.5s gap) — nearly continuous
-        let t = Timer(timeInterval: 5.5, repeats: true) { [weak self] _ in
-            self?.playOneHapticBurst()
-        }
-        RunLoop.main.add(t, forMode: .common)
-        hapticRepeatTimer = t
-
-        // Auto-stop after 5 minutes
-        let work = DispatchWorkItem { [weak self] in
-            self?.stopHaptics()
-        }
-        hapticStopWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 300, execute: work)
-    }
-
-    /// Plays a single 5-second burst of aggressive staccato haptics.
-    /// Uses an on/off pulsing pattern that is more attention-getting than a constant buzz.
-    private func playOneHapticBurst() {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics,
-              let engine = hapticEngine else {
-            // Fallback: UIKit heavy impacts for 5 seconds
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                let gen = UIImpactFeedbackGenerator(style: .heavy)
-                gen.prepare()
-                // Pulsing pattern: heavy impact every 0.15s for 5 seconds
-                for i in 0..<33 {
-                    let t = Double(i) * 0.15
-                    let item = DispatchWorkItem { gen.impactOccurred(intensity: 1.0) }
-                    self.hapticFallbackItems.append(item)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + t, execute: item)
-                }
-            }
-            return
-        }
-
-        // Aggressive staccato pattern over 5 seconds:
-        // Alternates between 0.3s of max-intensity buzz + transient hits,
-        // then 0.1s of silence. The pulsing on/off feels much stronger
-        // than a constant vibration because each onset is a fresh impact.
-        var events: [CHHapticEvent] = []
-        let burstDuration: TimeInterval = 5.0
-        let onTime: TimeInterval = 0.3
-        let offTime: TimeInterval = 0.1
-        let cycleTime = onTime + offTime
-        let transientStep: TimeInterval = 0.05  // transient hits within each on-period
-
-        var t: TimeInterval = 0
-        while t < burstDuration {
-            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
-            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
-
-            // Continuous buzz for the on-period
-            events.append(CHHapticEvent(
-                eventType: .hapticContinuous,
-                parameters: [intensity, sharpness],
-                relativeTime: t,
-                duration: onTime
-            ))
-
-            // Layer transient hits throughout the on-period for extra punch
-            var tt = t
-            while tt < t + onTime && tt < burstDuration {
-                events.append(CHHapticEvent(
-                    eventType: .hapticTransient,
-                    parameters: [intensity, sharpness],
-                    relativeTime: tt
-                ))
-                tt += transientStep
-            }
-
-            t += cycleTime
-        }
-
-        do {
-            let pattern = try CHHapticPattern(events: events, parameters: [])
-            try? hapticPlayer?.stop(atTime: CHHapticTimeImmediate)
-            let player = try engine.makeAdvancedPlayer(with: pattern)
-            player.loopEnabled = false
-            try engine.start()
-            try player.start(atTime: CHHapticTimeImmediate)
-            hapticPlayer = player
-        } catch {
-            print("[NagRX] Haptic playback error: \(error)")
-        }
-    }
-
     func stopHaptics() {
         hapticStopWork?.cancel()
         hapticStopWork = nil
-        hapticRepeatTimer?.invalidate()
-        hapticRepeatTimer = nil
         try? hapticPlayer?.stop(atTime: CHHapticTimeImmediate)
         hapticPlayer = nil
 

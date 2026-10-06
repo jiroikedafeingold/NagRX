@@ -16,35 +16,35 @@ struct HelpView: View {
                         icon: "bell.badge.fill",
                         iconColor: .red,
                         title: "Automatic Reminders",
-                        detail: "NagRX schedules notifications for each medication at its configured time. You'll get an alert with sound and haptics that won't stop until you respond."
+                        detail: "NagRX sets a real alarm for each medication at its configured time — the same kind the Clock app uses — so it rings even when your iPhone is on silent or in a Focus, and even if NagRX isn't open."
                     )
                     HelpRow(
                         icon: "arrow.clockwise",
                         iconColor: .red,
                         title: "Persistent Re-Alerts",
-                        detail: "If you don't respond, NagRX will keep re-alerting you at the interval configured in Settings (default: every 5 minutes) until you acknowledge the reminder."
+                        detail: "If you don't take it, NagRX keeps ringing again at the interval configured in Settings (default: every 5 minutes) until you confirm the dose."
                     )
                 }
 
-                // MARK: Notifications
-                Section("Notifications") {
-                    HelpRow(
-                        icon: "hand.tap.fill",
-                        iconColor: .orange,
-                        title: "Tapping the Banner = Snooze",
-                        detail: "Tapping the notification banner snoozes the alarm for 15 minutes. You'll be reminded again after the snooze period."
-                    )
+                // MARK: Alarms
+                Section("Alarms") {
                     HelpRow(
                         icon: "checkmark.circle.fill",
                         iconColor: .green,
-                        title: "\"I Took It\" Dismisses",
-                        detail: "Long-press a notification and tap \"I Took It\" to dismiss the alarm completely. This stops all sounds, haptics, and clears the widget."
+                        title: "Stop = \"I Took It\"",
+                        detail: "Tap Stop on the alarm once you've taken your medication. That ends the reminders for that dose and clears the widget."
                     )
                     HelpRow(
                         icon: "moon.zzz.fill",
                         iconColor: .purple,
                         title: "Snooze",
-                        detail: "Long-press a notification for snooze options: 15 minutes, 90 minutes, or 1 full day. The alarm will fire again after the snooze period. These same options are available on the Apple Watch."
+                        detail: "Tap Snooze to ring again in 15 minutes. While snoozed, a countdown shows in the Dynamic Island and on the Lock Screen. After that, re-alerts continue at your usual interval."
+                    )
+                    HelpRow(
+                        icon: "bell.badge.fill",
+                        iconColor: .orange,
+                        title: "If Alarms Are Off",
+                        detail: "If you don't allow alarms, NagRX sends notifications instead, which follow your ringer switch. Long-press one for \"I Took It\" or to snooze 15 minutes, 90 minutes or a day. Only the newest notification stays in Notification Center, and it clears itself after 30 minutes."
                     )
                 }
 
@@ -104,7 +104,7 @@ struct HelpView: View {
                         icon: "bell.badge",
                         iconColor: .red,
                         title: "Test Alarm",
-                        detail: "Use the test alarm in Settings to fire a notification in 5 seconds and verify that sounds and haptics are working correctly."
+                        detail: "Use the test alarm in Settings to ring an alarm in 5 seconds and check that it sounds the way you expect."
                     )
                 }
 
@@ -113,32 +113,14 @@ struct HelpView: View {
                     HelpRow(
                         icon: "bolt.fill",
                         iconColor: .yellow,
-                        title: "Grant Time Sensitive Notifications",
-                        detail: "In iOS Settings → Notifications → NagRX, enable Time Sensitive Notifications so alarms can break through Focus modes."
+                        title: "Allow Alarms",
+                        detail: "If doses aren't ringing, check Settings → Alarms in NagRX. If it says alarms are off, turn them back on for NagRX in iOS Settings."
                     )
                     HelpRow(
                         icon: "iphone.radiowaves.left.and.right",
                         iconColor: .yellow,
                         title: "Allow Background App Refresh",
-                        detail: "Enable Background App Refresh for NagRX in iOS Settings so alarms stay up to date even when you're not using the app."
-                    )
-                    HelpRow(
-                        icon: "square.stack.3d.up.fill",
-                        iconColor: .yellow,
-                        title: "64 Notification Limit",
-                        detail: "iOS allows a maximum of 64 pending local notifications. NagRX automatically divides the budget across your medications so each one gets multiple upcoming reminders scheduled."
-                    )
-                    HelpRow(
-                        icon: "xmark.app.fill",
-                        iconColor: .red,
-                        title: "Don't Force-Quit the App",
-                        detail: "NagRX plays alarm audio through a background audio session, which lets it bypass silent mode. If you swipe the app away in the app switcher, iOS ends that session and alarms will fall back to standard notification sounds that respect silent mode."
-                    )
-                    HelpRow(
-                        icon: "sunrise.fill",
-                        iconColor: .yellow,
-                        title: "Auto-Launch with Shortcuts",
-                        detail: "Create a Shortcut automation to open NagRX every morning so it's always running in the background. Open the Shortcuts app → Automation → New Automation → Time of Day. Set a time before your first medication (e.g. 6:00 AM), choose \"Run Immediately\", then add the \"Open App\" action and select NagRX. Add in a final step which is \"Go to Home Screen\". This ensures NagRX is active and can play full-volume alarms even if your phone restarted overnight."
+                        detail: "Enable Background App Refresh for NagRX in iOS Settings so upcoming doses stay booked even when you haven't opened the app for a while."
                     )
                 }
 
@@ -147,14 +129,8 @@ struct HelpView: View {
                     HelpRow(
                         icon: "speaker.slash.fill",
                         iconColor: .red,
-                        title: "Check the Silent Switch",
-                        detail: "NagRX can bypass silent mode, but only when the app is running in the background. If you force-quit the app (swipe it away in the app switcher), iOS falls back to standard notification sounds which respect the silent switch. Make sure NagRX is running in the background."
-                    )
-                    HelpRow(
-                        icon: "arrow.counterclockwise",
-                        iconColor: .red,
-                        title: "Reopen the App",
-                        detail: "If you accidentally force-quit NagRX, simply open it again. The background audio session will restart and future alarms will play at full volume regardless of the silent switch."
+                        title: "Check That Alarms Are Allowed",
+                        detail: "NagRX's alarms ring through the silent switch and Focus. If you turned alarms off for NagRX, it uses notifications instead, and those follow the silent switch."
                     )
                     HelpRow(
                         icon: "bell.slash.fill",
@@ -166,7 +142,7 @@ struct HelpView: View {
                         icon: "speaker.wave.3.fill",
                         iconColor: .orange,
                         title: "Check Device Volume",
-                        detail: "The notification sound volume is controlled by your device's ringer volume, not the media volume. Use the volume buttons while not playing media to adjust it."
+                        detail: "Alarm and notification volume follow your ringer volume, not the media volume. Use the volume buttons while not playing media to adjust it."
                     )
                 }
 

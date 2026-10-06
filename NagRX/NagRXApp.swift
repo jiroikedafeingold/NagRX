@@ -42,9 +42,8 @@ struct NagRXApp: App {
         // Capture which medication(s) were active before we clear them, so the celebration can name one.
         let celebratedName = SharedState.activeMedicationNames.first ?? ""
 
-        // Dismiss all active alarms: stop audio, haptics, clear notifications
-        AlarmPlayer.shared.stopPlayback()
-        NotificationService.shared.stopHaptics()
+        // Clear the due doses' notifications; marking them taken below also
+        // stops their alarms and re-alerts.
         NotificationService.shared.cancelAll()
 
         // Celebrate the user — strong haptic + visual confetti overlay.
@@ -53,18 +52,14 @@ struct NagRXApp: App {
             CelebrationManager.shared.celebrate(medicationName: celebratedName)
         }
 
-        // Clear widget state
-        SharedState.activeMedicationNames = []
-        SharedState.hasActiveAlarm = false
-
         // Cancel Watch alerts too
         if WCSession.isSupported(), WCSession.default.activationState == .activated, WCSession.default.isReachable {
             WCSession.default.sendMessage(["action": "dismiss"], replyHandler: nil, errorHandler: nil)
         }
 
-        // Re-sync so future alarms are rescheduled (without the now-dismissed ones interfering)
+        // Record the due doses as taken and rebuild the schedule.
         Task { @MainActor in
-            await NagScheduler.shared.sync()
+            await NagScheduler.shared.markAllDueTaken()
         }
     }
 }
@@ -92,17 +87,13 @@ final class PhoneSessionDelegate: NSObject, WCSessionDelegate {
             print("[NagRX] Watch dismissed alarm — cancelling phone alerts")
             DispatchQueue.main.async {
                 let celebratedName = SharedState.activeMedicationNames.first ?? ""
-                AlarmPlayer.shared.stopPlayback()
-                NotificationService.shared.stopHaptics()
                 NotificationService.shared.cancelAll()
                 NotificationService.shared.playSuccessHaptic()
                 Task { @MainActor in
                     CelebrationManager.shared.celebrate(medicationName: celebratedName)
                 }
-                SharedState.activeMedicationNames = []
-                SharedState.hasActiveAlarm = false
                 Task { @MainActor in
-                    await NagScheduler.shared.sync()
+                    await NagScheduler.shared.markAllDueTaken()
                 }
             }
         }

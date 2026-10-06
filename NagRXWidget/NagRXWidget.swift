@@ -6,16 +6,18 @@ import SwiftUI
 private enum WidgetSharedState {
     static let suiteName = "group.com.jirofeingold.NagRX"
 
-    private static var defaults: UserDefaults? {
-        UserDefaults(suiteName: suiteName)
+    /// Mirrors SharedState.Dose in the app.
+    struct Dose: Codable {
+        var medicationID: String
+        var name: String
+        var doseDate: Date
     }
 
-    static var hasActiveAlarm: Bool {
-        defaults?.bool(forKey: "hasActiveAlarm") ?? false
-    }
-
-    static var activeMedicationNames: [String] {
-        defaults?.stringArray(forKey: "activeMedicationNames") ?? []
+    /// The dose each medication is on (due or next), written by the app.
+    static var doses: [Dose] {
+        guard let data = UserDefaults(suiteName: suiteName)?.data(forKey: "doses"),
+              let doses = try? JSONDecoder().decode([Dose].self, from: data) else { return [] }
+        return doses
     }
 }
 
@@ -35,24 +37,23 @@ struct NagRXWidgetProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NagRXWidgetEntry) -> Void) {
-        let entry = NagRXWidgetEntry(
-            date: .now,
-            hasActiveAlarm: WidgetSharedState.hasActiveAlarm,
-            activeMedicationNames: WidgetSharedState.activeMedicationNames
-        )
-        completion(entry)
+        completion(Self.entry(at: .now, doses: WidgetSharedState.doses))
     }
 
+    /// One entry now and one at each upcoming dose time, so the widget turns red
+    /// exactly when a dose is due without the app having to run. Taking a dose
+    /// rewrites the schedule and reloads the timeline.
     func getTimeline(in context: Context, completion: @escaping (Timeline<NagRXWidgetEntry>) -> Void) {
-        let entry = NagRXWidgetEntry(
-            date: .now,
-            hasActiveAlarm: WidgetSharedState.hasActiveAlarm,
-            activeMedicationNames: WidgetSharedState.activeMedicationNames
-        )
-        // The shared state only changes when the app writes it, and every write
-        // already calls reloadAllTimelines(). Polling every 5 minutes just spawned
-        // this extension ~290 times a day to re-read the same two values.
-        completion(Timeline(entries: [entry], policy: .never))
+        let doses = WidgetSharedState.doses
+        let now = Date()
+        let changes = Set(doses.map(\.doseDate).filter { $0 > now }).sorted()
+        let entries = [Self.entry(at: now, doses: doses)] + changes.map { Self.entry(at: $0, doses: doses) }
+        completion(Timeline(entries: entries, policy: .never))
+    }
+
+    private static func entry(at date: Date, doses: [WidgetSharedState.Dose]) -> NagRXWidgetEntry {
+        let due = doses.filter { $0.doseDate <= date }.map(\.name)
+        return NagRXWidgetEntry(date: date, hasActiveAlarm: !due.isEmpty, activeMedicationNames: due)
     }
 }
 

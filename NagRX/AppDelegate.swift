@@ -8,11 +8,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Initialize notification service (sets itself as delegate)
         _ = NotificationService.shared
 
-        // Start silent audio loop to keep the app alive in background
-        BackgroundAudioKeepAlive.shared.start()
+        // Register the background refresh handler before launch finishes.
+        NagScheduler.shared.registerBackgroundRefresh()
 
-        // Request notification permission
-        Task {
+        // Ask for notifications (fallback + silent reminders). Alarms are asked
+        // for once the app is on screen, in applicationDidBecomeActive.
+        Task { @MainActor in
             await NotificationService.shared.requestPermission()
         }
 
@@ -20,22 +21,22 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Re-ensure background audio is running
-        BackgroundAudioKeepAlive.shared.start()
-
         // Clear badge
         Task {
             try? await UNUserNotificationCenter.current().setBadgeCount(0)
         }
 
-        // Sync alarms
+        // Ask for alarms the first time (how doses ring through silent mode),
+        // then sync.
         Task { @MainActor in
+            if DoseAlarms.shared.isUndetermined {
+                await DoseAlarms.shared.requestAuthorization()
+            }
             await NagScheduler.shared.sync()
         }
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Ensure background audio keep-alive is running
-        BackgroundAudioKeepAlive.shared.start()
+        NagScheduler.shared.scheduleBackgroundRefresh()
     }
 }

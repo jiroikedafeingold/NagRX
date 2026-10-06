@@ -48,7 +48,11 @@ enum NagRXSound: String, CaseIterable, Codable, Identifiable, Sendable {
 
     static let fileExtension = "m4r"
 
+    /// System alert sounds (alarms and notifications) need a .caf; the .m4r
+    /// originals are kept for in-app previews.
+    var alertFileName: String { fileName + ".caf" }
+
     var notificationSound: UNNotificationSound {
-        UNNotificationSound(named: UNNotificationSoundName(rawValue: fileName + "." + Self.fileExtension))
+        UNNotificationSound(named: UNNotificationSoundName(rawValue: alertFileName))
     }
 }

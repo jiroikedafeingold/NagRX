@@ -31,4 +31,26 @@ enum SharedState {
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
+
+    /// The dose each medication is currently on (due, or next up). The widget
+    /// reads this to switch to "Take now" at the dose time by itself, since the
+    /// app no longer runs in the background to tell it.
+    struct Dose: Codable, Equatable {
+        var medicationID: String
+        var name: String
+        var doseDate: Date
+    }
+
+    static var doses: [Dose] {
+        get {
+            guard let data = defaults?.data(forKey: "doses"),
+                  let doses = try? JSONDecoder().decode([Dose].self, from: data) else { return [] }
+            return doses
+        }
+        set {
+            guard newValue != doses, let data = try? JSONEncoder().encode(newValue) else { return }
+            defaults?.set(data, forKey: "doses")
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
 }

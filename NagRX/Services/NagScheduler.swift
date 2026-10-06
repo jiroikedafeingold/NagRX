@@ -1,14 +1,22 @@
 import Foundation
 import SwiftData
 import WatchConnectivity
+import BackgroundTasks
 
-/// Central coordinator: reads medications from SwiftData, schedules notifications
-/// and AlarmPlayer entries, manages the alarm lifecycle.
+/// Central coordinator: reads medications from SwiftData and schedules a system
+/// alarm (AlarmKit) for each dose, with re-alerts at the configured interval until
+/// the dose is taken. Falls back to notifications when alarms aren't allowed.
 final class NagScheduler {
     static let shared = NagScheduler()
 
+    /// Background refresh identifier — must match Info.plist BGTaskSchedulerPermittedIdentifiers.
+    static let refreshTaskID = "com.jirofeingold.NagRX.refresh"
+
+    /// Doses booked ahead per medication. Alarms ring without NagRX running, so
+    /// booking a few lets tomorrow's dose ring even if the app isn't opened.
+    private static let dosesAhead = 3
+
     private var modelContainer: ModelContainer?
-    private var dailySyncTimer: Timer?
 
     /// The last payload handed to WatchConnectivity. sync() runs on every
     /// foreground and transferUserInfo queues a Bluetooth transfer even when the
@@ -26,12 +34,11 @@ final class NagScheduler {
     /// Must be called once after the model container is ready.
     func configure(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
-        startDailySyncTimer()
     }
 
     // MARK: - Sync
 
-    /// Full reschedule: cancel all notifications, then schedule for all enabled medications.
+    /// Rebuilds every dose alarm (or fallback notification) from the medication list.
     @MainActor
     func sync() async {
         guard let container = modelContainer else {
@@ -39,110 +46,181 @@ final class NagScheduler {
             return
         }
 
-        NotificationService.shared.cancelAll()
-        AlarmPlayer.shared.stopPlayback()
+        NotificationService.shared.cancelAllPending()
+        NotificationService.shared.tidyDeliveredNotifications()
 
         let context = ModelContext(container)
         let descriptor = FetchDescriptor<Medication>(
             predicate: #Predicate { $0.isEnabled },
             sortBy: [SortDescriptor(\Medication.scheduledHour)]
         )
-
         guard let medications = try? context.fetch(descriptor) else {
             print("[NagRX] NagScheduler: failed to fetch medications")
             return
         }
 
-        // Notification budget: iOS allows 64 pending notifications.
-        // Maximize re-nags per medication so alerts keep firing until dismissed.
-        let medCount = max(medications.count, 1)
-
-        var alarmEntries: [AlarmPlayer.Entry] = []
-        var activeNames: [String] = []
+        let now = Date()
+        let alarms = DoseAlarms.shared
+        let useAlarms = alarms.isAuthorized
         let intervalSeconds = Double(AppSettings.shared.reNagIntervalMinutes) * 60
 
-        // Budget per medication: fill up to 64 total notifications across all meds.
-        // Each medication gets 1 upcoming occurrence, rest of budget goes to re-nags.
+        // Re-alert budget per medication — unchanged from the notification
+        // version, so a missed dose nags for just as long as it always did.
+        let medCount = max(medications.count, 1)
         let reNagsPerMed = max((64 / medCount) - 1, 5)
+        let nagSpan = Double(reNagsPerMed) * intervalSeconds
+
+        var requests: [DoseAlarmRequest] = []
+        var doses: [SharedState.Dose] = []
 
         for med in medications {
-            let upcomingDates = med.nextFireDates(limit: 1)
+            let medID = med.id.uuidString
 
-            for (index, fireDate) in upcomingDates.enumerated() {
-                let identifier = "\(med.notificationIdentifier)_occ\(index)"
-
-                await NotificationService.shared.scheduleAlarm(
-                    identifier: identifier,
-                    medicationName: med.name,
-                    fireDate: fireDate,
-                    sound: med.sound,
-                    reNagCount: med.silentReminder ? 0 : reNagsPerMed,
-                    silentReminder: med.silentReminder
-                )
-
-                // Silent reminders don't need AlarmPlayer entries
-                if !med.silentReminder {
-                    let entryFireDates = (0...reNagsPerMed).compactMap { i -> Date? in
-                        let date = fireDate.addingTimeInterval(Double(i) * intervalSeconds)
-                        return date > Date() ? date : nil
-                    }
-
-                    if !entryFireDates.isEmpty {
-                        alarmEntries.append(AlarmPlayer.Entry(
-                            identifier: identifier,
-                            fireDates: entryFireDates,
-                            sound: med.sound,
-                            medicationName: med.name
-                        ))
-                    }
+            if med.silentReminder {
+                // Silent reminders stay a single quiet notification.
+                if let next = med.nextFireDates(limit: 1).first {
+                    await NotificationService.shared.scheduleAlarm(
+                        identifier: "\(med.notificationIdentifier)_occ0",
+                        medicationName: med.name,
+                        fireDate: next,
+                        sound: med.sound,
+                        reNagCount: 0,
+                        silentReminder: true,
+                        medicationID: medID
+                    )
                 }
+                continue
             }
 
-            // Check if any alarm for this medication is currently active (no time limit)
-            if !med.silentReminder {
-                let nextFire = med.nextFireDate
-                if nextFire <= Date() {
-                    activeNames.append(med.name)
-                }
+            // A dose that's already due, not yet taken, and still inside its
+            // nagging window keeps nagging — only if NagRX actually alarmed for it.
+            let lookBack = now.addingTimeInterval(-(nagSpan + Double(DoseAlarms.snoozeMinutes) * 60))
+            let lastTaken = DoseLedger.lastTaken(medicationID: medID) ?? .distantPast
+            let dueDose = med.fireDates(after: lookBack, limit: 8)
+                .filter { $0 <= now && $0 > lastTaken }
+                .last
+                .flatMap { alarms.wasScheduled(doseKey: DoseAlarms.doseKey(medicationID: medID, doseDate: $0)) ? $0 : nil }
+
+            let upcoming = med.nextFireDates(limit: Self.dosesAhead)
+            let current = dueDose ?? upcoming.first
+            guard let current else { continue }
+            let later = upcoming.filter { $0 > current }.prefix(Self.dosesAhead - 1)
+
+            doses.append(SharedState.Dose(medicationID: medID, name: med.name, doseDate: current))
+
+            guard useAlarms else {
+                await NotificationService.shared.scheduleAlarm(
+                    identifier: "\(med.notificationIdentifier)_occ0",
+                    medicationName: med.name,
+                    fireDate: current,
+                    sound: med.sound,
+                    reNagCount: reNagsPerMed,
+                    medicationID: medID
+                )
+                continue
+            }
+
+            func request(_ doseDate: Date, slot: Int, at fireDate: Date) -> DoseAlarmRequest {
+                DoseAlarmRequest(
+                    doseKey: DoseAlarms.doseKey(medicationID: medID, doseDate: doseDate),
+                    medicationID: medID,
+                    medicationName: med.name,
+                    doseDate: doseDate,
+                    slot: slot,
+                    fireDate: fireDate,
+                    sound: med.sound
+                )
+            }
+
+            // The current dose: first ring plus re-alerts. After a snooze the
+            // re-alerts restart from the end of the snooze.
+            let currentKey = DoseAlarms.doseKey(medicationID: medID, doseDate: current)
+            let reNagBase = DoseLedger.snoozedUntil(doseKey: currentKey) ?? current
+            requests.append(request(current, slot: 0, at: current))
+            for i in 1...reNagsPerMed {
+                requests.append(request(current, slot: i, at: reNagBase.addingTimeInterval(Double(i) * intervalSeconds)))
+            }
+            // Later doses: just the first ring. Their re-alerts are added once
+            // they become the current dose (any alarm action or app open resyncs).
+            for doseDate in later {
+                requests.append(request(doseDate, slot: 0, at: doseDate))
             }
         }
 
-        AlarmPlayer.shared.setSchedule(alarmEntries)
+        if useAlarms {
+            // Anything AlarmKit refused (for example over its alarm limit) still
+            // gets notifications so the dose isn't missed.
+            let failed = await alarms.reconcile(requests)
+            for (_, group) in Dictionary(grouping: failed, by: \.doseKey) {
+                guard let first = group.first else { continue }
+                await NotificationService.shared.scheduleAlarm(
+                    identifier: "nagrx_fallback_\(first.doseKey)",
+                    medicationName: first.medicationName,
+                    fireDate: first.doseDate,
+                    sound: first.sound,
+                    reNagCount: group.map(\.slot).max() ?? 0,
+                    medicationID: first.medicationID
+                )
+            }
+        } else {
+            alarms.cancelAll()
+        }
 
-        // Update widget shared state
-        SharedState.activeMedicationNames = activeNames
-        SharedState.hasActiveAlarm = !activeNames.isEmpty
+        // The widget works out what's due from this schedule on its own.
+        SharedState.doses = doses
+        let dueNames = doses.filter { $0.doseDate <= now }.map(\.name)
+        SharedState.activeMedicationNames = dueNames
+        SharedState.hasActiveAlarm = !dueNames.isEmpty
 
         // Sync medication list to Apple Watch
         sendMedicationsToWatch(from: container)
     }
 
-    /// Schedule a single medication (called when adding a new one without full resync).
+    /// Marks every dose that's due right now as taken — the widget's "Take now"
+    /// and the Watch's "I Took It" — then rebuilds the schedule.
+    @MainActor
+    func markAllDueTaken() async {
+        let now = Date()
+        for dose in SharedState.doses where dose.doseDate <= now {
+            DoseLedger.markTaken(medicationID: dose.medicationID, doseDate: dose.doseDate)
+        }
+        DoseAlarms.shared.stopRinging()
+        await sync()
+    }
+
+    /// Schedule a newly added medication.
     @MainActor
     func scheduleMedication(_ med: Medication) async {
-        let fireDates = med.nextFireDates(limit: 1)
-        for (index, fireDate) in fireDates.enumerated() {
-            let identifier = "\(med.notificationIdentifier)_occ\(index)"
-            await NotificationService.shared.scheduleAlarm(
-                identifier: identifier,
-                medicationName: med.name,
-                fireDate: fireDate,
-                sound: med.sound
-            )
+        await sync()
+    }
+
+    /// Cancel notifications for a medication being deleted or disabled. Its alarms
+    /// are removed by the sync that follows.
+    func cancelMedication(_ med: Medication) {
+        NotificationService.shared.cancel(identifiers: ["\(med.notificationIdentifier)_occ0"])
+    }
+
+    // MARK: - Background refresh
+
+    /// Registers the background refresh handler. Call before launch finishes.
+    func registerBackgroundRefresh() {
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.refreshTaskID, using: nil) { task in
+            guard let task = task as? BGAppRefreshTask else { return }
+            self.scheduleBackgroundRefresh()
+            let work = Task { @MainActor in
+                await self.sync()
+                task.setTaskCompleted(success: true)
+            }
+            task.expirationHandler = { work.cancel() }
         }
     }
 
-    /// Cancel alarms for a specific medication (called when deleting or disabling).
-    func cancelMedication(_ med: Medication) {
-        let baseId = med.notificationIdentifier
-        var identifiers: [String] = []
-        for i in 0..<10 {
-            identifiers.append("\(baseId)_occ\(i)")
-        }
-        NotificationService.shared.cancel(identifiers: identifiers)
-        for id in identifiers {
-            AlarmPlayer.shared.dismiss(identifier: id)
-        }
+    /// Asks iOS to wake NagRX periodically to keep doses booked ahead. iOS
+    /// decides the actual timing.
+    func scheduleBackgroundRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: Self.refreshTaskID)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60)
+        try? BGTaskScheduler.shared.submit(request)
     }
 
     // MARK: - Watch Sync
@@ -228,28 +306,6 @@ final class NagScheduler {
             }
         } else {
             session.transferUserInfo(payload)
-        }
-    }
-
-    // MARK: - Daily Sync Timer
-
-    /// Re-schedules alarms daily at midnight so tomorrow's fire dates are always queued.
-    private func startDailySyncTimer() {
-        guard dailySyncTimer == nil else { return }
-
-        let cal = Calendar.current
-        var midnightComps = cal.dateComponents([.year, .month, .day], from: Date())
-        midnightComps.hour = 0
-        midnightComps.minute = 1
-        guard let tomorrow = cal.date(byAdding: .day, value: 1, to: cal.date(from: midnightComps) ?? Date()) else { return }
-
-        let interval = tomorrow.timeIntervalSinceNow
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(interval, 60)) { [weak self] in
-            Task { @MainActor in
-                await self?.sync()
-            }
-            self?.dailySyncTimer = nil
-            self?.startDailySyncTimer()
         }
     }
 }

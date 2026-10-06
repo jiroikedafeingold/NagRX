@@ -67,8 +67,13 @@ final class Medication {
 
     /// Returns the next `limit` fire dates for this medication.
     func nextFireDates(limit: Int = 1) -> [Date] {
+        fireDates(after: Date(), limit: limit)
+    }
+
+    /// Returns the first `limit` fire dates strictly after `now`. Passing a date
+    /// in the past lets the scheduler find a dose that is already due.
+    func fireDates(after now: Date, limit: Int) -> [Date] {
         let cal = Calendar.current
-        let now = Date()
 
         switch frequency {
         case .daily:
