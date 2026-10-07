@@ -1,9 +1,10 @@
-This update is all about battery life, without giving up what NagRX promises: the alarm keeps nagging, out loud, until you take your medication, even when the phone is locked and the ringer is off.
+NagRX now uses real system alarms.
 
-- Alarms now wake the phone only at the moment they need to ring, instead of checking the clock every second all day.
-- The silent background stream that keeps alarms reliable now uses the lightest audio settings iOS allows.
-- The haptic engine powers down between alarms.
-- The widget updates only when your medication status actually changes, instead of refreshing every few minutes.
-- The medication list is sent to your Apple Watch only when it has changed.
+- Doses ring with the same kind of alarm as the Clock app, so they sound even when your iPhone is on silent or in a Focus, and NagRX no longer has to keep running in the background. That's much easier on your battery.
+- Your reminder timing is unchanged: if you don't take a dose, it keeps ringing again at your chosen interval.
+- Tap Stop on the alarm when you've taken it. Tap Snooze to be reminded again in 15 minutes.
+- New Live Activity: a snoozed dose shows a countdown in the Dynamic Island and on the Lock Screen.
+- The widget now turns red right at the dose time, on its own.
+- Tidier notifications: only the newest one stays in Notification Center, and it clears itself after 30 minutes.
 
 Questions or feedback? apps@feingold5.com
