@@ -72,6 +72,8 @@ final class NagScheduler {
 
         var requests: [DoseAlarmRequest] = []
         var doses: [SharedState.Dose] = []
+        /// Silent reminders' current doses — Live Activity only, not the widget or Watch.
+        var silentDoses: [SharedState.Dose] = []
 
         for med in medications {
             let medID = med.id.uuidString
@@ -88,6 +90,17 @@ final class NagScheduler {
                         silentReminder: true,
                         medicationID: medID
                     )
+                }
+                // They still get the Live Activity, kept up until taken. A dose
+                // that's come due stays current only if its activity was started.
+                let lookBack = now.addingTimeInterval(-nagSpan)
+                let lastTaken = DoseLedger.lastTaken(medicationID: medID) ?? .distantPast
+                let dueDose = med.fireDates(after: lookBack, limit: 8)
+                    .filter { $0 <= now && $0 > lastTaken }
+                    .last
+                    .flatMap { DoseLiveActivities.wasStarted(doseKey: DoseAlarms.doseKey(medicationID: medID, doseDate: $0)) ? $0 : nil }
+                if let current = dueDose ?? med.nextFireDates(limit: 1).first {
+                    silentDoses.append(SharedState.Dose(medicationID: medID, name: med.name, doseDate: current))
                 }
                 continue
             }
@@ -171,6 +184,9 @@ final class NagScheduler {
         let dueNames = doses.filter { $0.doseDate <= now }.map(\.name)
         SharedState.activeMedicationNames = dueNames
         SharedState.hasActiveAlarm = !dueNames.isEmpty
+
+        // A "Take X" Live Activity per dose, from the dose time until it's taken.
+        await DoseLiveActivities.sync(doses: doses + silentDoses)
 
         // Sync medication list to Apple Watch
         sendMedicationsToWatch(from: container)

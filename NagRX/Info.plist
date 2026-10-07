@@ -19,8 +19,6 @@
 	</array>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>NagRX rings an alarm when each medication is due so it sounds even when your iPhone is on silent or in a Focus.</string>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

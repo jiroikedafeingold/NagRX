@@ -7,6 +7,7 @@ struct NagRXWidgetBundle: WidgetBundle {
         NagRXWidget()
         #if os(iOS)
         DoseAlarmLiveActivity()
+        DoseDueLiveActivity()
         #endif
     }
 }
