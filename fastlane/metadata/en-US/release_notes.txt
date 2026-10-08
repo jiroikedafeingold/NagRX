@@ -1,10 +1,8 @@
-NagRX now uses real system alarms.
+A dose you haven't taken now stays in front of you.
 
-- Doses ring with the same kind of alarm as the Clock app, so they sound even when your iPhone is on silent or in a Focus, and NagRX no longer has to keep running in the background. That's much easier on your battery.
-- Your reminder timing is unchanged: if you don't take a dose, it keeps ringing again at your chosen interval.
-- Tap Stop on the alarm when you've taken it. Tap Snooze to be reminded again in 15 minutes.
-- New Live Activity: a snoozed dose shows a countdown in the Dynamic Island and on the Lock Screen.
-- The widget now turns red right at the dose time, on its own.
-- Tidier notifications: only the newest one stays in Notification Center, and it clears itself after 30 minutes.
+- New "Take" Live Activity: when a dose is due, it appears on the Lock Screen and in the Dynamic Island and stays there, counting how long the dose has been waiting, until you tap Taken.
+- Tap Taken right on the Live Activity to record the dose without opening NagRX.
+- Works for silent reminders too.
+- The Live Activities now show the NagRX icon.
 
 Questions or feedback? apps@feingold5.com
