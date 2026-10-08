@@ -55,10 +55,14 @@ struct DoseDueLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label("Due", systemImage: "pills.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .padding(.leading, 4)
+                    Label {
+                        Text("Due")
+                    } icon: {
+                        AppIconImage(size: 24)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     WaitingTime(doseDate: context.attributes.doseDate)
@@ -75,15 +79,13 @@ struct DoseDueLiveActivity: Widget {
                     .padding(.horizontal, 4)
                 }
             } compactLeading: {
-                Image(systemName: "pills.fill")
-                    .foregroundStyle(.red)
+                AppIconImage(size: 22)
             } compactTrailing: {
                 WaitingTime(doseDate: context.attributes.doseDate)
                     .frame(maxWidth: 64)
                     .foregroundStyle(.red)
             } minimal: {
-                Image(systemName: "pills.fill")
-                    .foregroundStyle(.red)
+                AppIconImage(size: 22)
             }
             .keylineTint(.red)
         }
@@ -91,6 +93,20 @@ struct DoseDueLiveActivity: Widget {
 }
 
 // MARK: - Views
+
+/// NagRX's app icon, shaped like a Home Screen icon. Used by both Live Activities.
+struct AppIconImage: View {
+    var size: CGFloat
+
+    var body: some View {
+        Image("LiveActivityIcon")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
 
 /// Counts up: how long the dose has been waiting.
 private struct WaitingTime: View {
@@ -139,9 +155,7 @@ private struct DoseDueLockScreenView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "pills.fill")
-                .font(.title2)
-                .foregroundStyle(.red)
+            AppIconImage(size: 40)
             DoseDueSummary(attributes: attributes)
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {

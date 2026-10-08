@@ -43,15 +43,13 @@ struct DoseAlarmLiveActivity: Widget {
                         .padding(.horizontal, 4)
                 }
             } compactLeading: {
-                Image(systemName: "pills.fill")
-                    .foregroundStyle(.red)
+                AppIconImage(size: 22)
             } compactTrailing: {
                 RingCountdown(state: context.state)
                     .frame(maxWidth: 64)
                     .foregroundStyle(.red)
             } minimal: {
-                Image(systemName: "pills.fill")
-                    .foregroundStyle(.red)
+                AppIconImage(size: 22)
             }
             .keylineTint(.red)
         }
